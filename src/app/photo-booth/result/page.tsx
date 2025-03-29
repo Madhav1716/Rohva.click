@@ -1,204 +1,116 @@
 "use client";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
+
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Download,
   ArrowLeft,
-  Share2,
-  Instagram,
-  Facebook,
-  Twitter,
-  Copy,
   Check,
-  Camera,
-  Heart,
-  Sparkles,
-  PenTool,
+  LayoutGrid,
+  LayoutList,
+  Square,
+  Grid,
+  Image,
 } from "lucide-react";
 import * as domtoimage from "dom-to-image";
 import confetti from "canvas-confetti";
 
+// Constants moved outside component to prevent recreation on each render
+const BG_COLORS = [
+  { color: "#ffffff", label: "White" },
+  { color: "#000000", label: "Black" },
+  { color: "#fce7f3", label: "Pink" },
+  { color: "#ede9fe", label: "Purple" },
+  { color: "#e0f2fe", label: "Blue" },
+  { color: "#ecfccb", label: "Green" },
+  { color: "#fef3c7", label: "Yellow" },
+  { color: "#f8f1e4", label: "Vintage" },
+];
+
+const LAYOUTS = [
+  { id: "vertical", label: "Vertical", icon: LayoutList },
+  { id: "horizontal", label: "Horizontal", icon: LayoutGrid },
+  { id: "grid", label: "Grid", icon: Grid },
+  { id: "polaroid", label: "Polaroid", icon: Image },
+  { id: "masonry", label: "Masonry", icon: Square },
+];
+
+const FILTERS = [
+  { id: "", label: "None" },
+  { id: "filter-grayscale", label: "Grayscale" },
+  { id: "filter-sepia", label: "Sepia" },
+  { id: "filter-vintage", label: "Vintage" },
+  { id: "filter-contrast", label: "Contrast" },
+  { id: "filter-blur", label: "Soft Focus" },
+];
+
+const ASPECT_RATIOS = [
+  { id: "original", label: "Original" },
+  { id: "square", label: "Square" },
+  { id: "4:3", label: "4:3" },
+  { id: "16:9", label: "16:9" },
+];
+
+// Utility function for triggering confetti
+const triggerConfetti = () => {
+  confetti({
+    particleCount: 100,
+    spread: 70,
+    origin: { y: 0.6 },
+  });
+};
+
 export default function PhotoBoothResult() {
   const router = useRouter();
+  const collageRef = useRef(null);
+
+  // State management
   const [photos, setPhotos] = useState([]);
   const [showDate, setShowDate] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
-
   const [selectedLayout, setSelectedLayout] = useState("vertical");
-  const collageRef = useRef(null);
-  const [isDownloading, setIsDownloading] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const [showShareOptions, setShowShareOptions] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState("");
+  const [bgColor, setBgColor] = useState(BG_COLORS[0].color);
+  const [isDownloading, setIsDownloading] = useState(false);
   const [loadingEffect, setLoadingEffect] = useState(true);
+  const [aspectRatio, setAspectRatio] = useState("original");
+  const [polaroidRotation, setPolaroidRotation] = useState(2);
+  const [showLayoutOptions, setShowLayoutOptions] = useState(false);
 
-  // Background colors with labels
-  const bgColors = [
-    { color: "#ffffff", label: "White" },
-    { color: "#000000", label: "Black" },
-    { color: "#fce7f3", label: "Pink" },
-    { color: "#ede9fe", label: "Purple" },
-    { color: "#e0f2fe", label: "Blue" },
-    { color: "#ecfccb", label: "Green" },
-    { color: "#fef3c7", label: "Yellow" },
-    { color: "#f8f1e4", label: "Vintage" },
-  ];
-  const [bgColor, setBgColor] = useState(bgColors[0].color);
+  // New state for masonry and horizontal layouts
+  const [masonryGap, setMasonryGap] = useState(2);
+  const [horizontalBalance, setHorizontalBalance] = useState(true);
 
-  const shareDirectOnSocialMedia = async (platform) => {
-    if (!collageRef.current) {
-      alert("No image to share.");
-      return;
-    }
-
-    try {
-      // Generate shareable image
-      const dataUrl = await domtoimage.toJpeg(collageRef.current, {
-        quality: 0.95,
-        bgcolor: bgColor,
-      });
-
-      // Create blob from data URL
-      const blob = await (await fetch(dataUrl)).blob();
-      const file = new File([blob], "rohva-photobooth.jpg", {
-        type: "image/jpeg",
-      });
-
-      // Prepare sharing content
-      const caption =
-        "Capturing memories with style! 📸✨ Created on @Rohva #RohvaPhotoBooth";
-
-      // Platform-specific sharing logic
-      switch (platform) {
-        case "twitter":
-          shareOnTwitter(file, caption);
-          break;
-        case "facebook":
-          shareOnFacebook(file, caption);
-          break;
-        case "instagram":
-          shareOnInstagram(file, caption);
-          break;
-        default:
-          alert("Sharing not supported for this platform.");
-      }
-
-      // Celebration effect
-      confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { y: 0.6 },
-      });
-    } catch (error) {
-      console.error("Sharing error:", error);
-      alert("Failed to prepare sharing content. Please try again.");
-    }
-  };
-
-  // Twitter Sharing (Web Intent with Image)
-  const shareOnTwitter = (file, caption) => {
-    // Twitter's web intent doesn't support direct image upload
-    const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(
-      caption
-    )}`;
-    window.open(twitterShareUrl, "_blank", "width=600,height=400");
-
-    // Note: Actual image upload requires Twitter API
-    alert("Please manually upload the image after the tweet window opens.");
-  };
-
-  // Facebook Sharing
-  const shareOnFacebook = (file, caption) => {
-    // Facebook sharing requires app or complex API
-    const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
-      window.location.href
-    )}`;
-
-    // Open sharing dialog
-    const shareWindow = window.open(
-      facebookShareUrl,
-      "_blank",
-      "width=600,height=400"
-    );
-
-    // Attempt to pass image (limited browser support)
-    if (navigator.clipboard) {
-      navigator.clipboard
-        .write([
-          new ClipboardItem({
-            [file.type]: file,
-          }),
-        ])
-        .then(() => {
-          alert("Image copied. Paste it in the Facebook post.");
-        })
-        .catch((err) => {
-          console.error("Failed to copy image", err);
-        });
-    }
-  };
-
-  // Instagram Sharing
-  const shareOnInstagram = (file, caption) => {
-    // Instagram primarily requires mobile app for direct posting
-    if (
-      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-        navigator.userAgent
-      )
-    ) {
-      // Deep link to Instagram create post (limited functionality)
-      const instagramShareUrl = `instagram://library?AssetPath=${encodeURIComponent(
-        file.name
-      )}&Caption=${encodeURIComponent(caption)}`;
-      window.location.href = instagramShareUrl;
-    } else {
-      alert(
-        "Instagram sharing is best done from a mobile device. Please use the Instagram app."
-      );
-    }
-  };
-
-  // Layouts
-  const layouts = [
-    { id: "vertical", label: "Vertical" },
-    { id: "horizontal", label: "Horizontal" },
-    { id: "grid", label: "Grid" },
-    { id: "polaroid", label: "Polaroid" },
-  ];
-
-  // Filters
-  const filters = [
-    { id: "", label: "None" },
-    { id: "filter-grayscale", label: "Grayscale" },
-    { id: "filter-sepia", label: "Sepia" },
-    { id: "filter-vintage", label: "Vintage" },
-    { id: "filter-contrast", label: "Contrast" },
-    { id: "filter-blur", label: "Soft Focus" },
-  ];
-
-  // Simulated loading effect
+  // Loading effect and initial confetti
   useEffect(() => {
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       setLoadingEffect(false);
-
-      // Trigger confetti when loading is complete
-      confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { y: 0.6 },
-      });
+      triggerConfetti();
     }, 1500);
+
+    return () => clearTimeout(timer);
   }, []);
 
+  // Load saved photos and filter from localStorage
   useEffect(() => {
-    const savedPhotos = localStorage.getItem("photos");
-    const savedFilter = localStorage.getItem("selectedFilter");
-    if (savedPhotos) {
-      setPhotos(JSON.parse(savedPhotos));
-    }
-    if (savedFilter) {
-      setSelectedFilter(savedFilter);
+    // Only run on client side to prevent hydration mismatch
+    if (typeof window !== "undefined") {
+      try {
+        const savedPhotos = localStorage.getItem("photos");
+        // Fixed the key to match what's used in PhotoBooth.js
+        const savedFilter = localStorage.getItem("photoFilter");
+
+        if (savedPhotos) {
+          setPhotos(JSON.parse(savedPhotos));
+        }
+
+        if (savedFilter) {
+          setSelectedFilter(savedFilter);
+        }
+      } catch (error) {
+        console.error("Error loading saved data:", error);
+      }
     }
   }, []);
 
@@ -246,12 +158,7 @@ export default function PhotoBoothResult() {
       link.href = dataUrl;
       link.click();
 
-      // Trigger confetti
-      confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { y: 0.6 },
-      });
+      triggerConfetti();
     } catch (error) {
       console.error("Error creating or downloading collage:", error);
       alert("Failed to download the collage. Please try again.");
@@ -260,60 +167,110 @@ export default function PhotoBoothResult() {
     }
   };
 
-  // Copy to clipboard
-  const copyToClipboard = async () => {
-    if (!collageRef.current) return;
-
-    try {
-      const dataUrl = await domtoimage.toJpeg(collageRef.current, {
-        quality: 0.8,
-        bgcolor: bgColor,
-      });
-
-      // Create a temporary canvas to convert data URL to blob
-      const img = new Image();
-      img.src = dataUrl;
-      await new Promise((resolve) => (img.onload = resolve));
-
-      const canvas = document.createElement("canvas");
-      canvas.width = img.width;
-      canvas.height = img.height;
-      const ctx = canvas.getContext("2d");
-      ctx.drawImage(img, 0, 0);
-
-      // Convert canvas to blob and copy to clipboard
-      canvas.toBlob(async (blob) => {
-        await navigator.clipboard.write([
-          new ClipboardItem({
-            [blob.type]: blob,
-          }),
-        ]);
-
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      });
-    } catch (error) {
-      console.error("Error copying to clipboard:", error);
-    }
+  // Get aspect ratio class based on selection
+  const getAspectRatioClass = () => {
+    return aspectRatio === "original"
+      ? "w-full"
+      : aspectRatio === "square"
+      ? "aspect-square object-cover w-full"
+      : aspectRatio === "4:3"
+      ? "aspect-[4/3] object-cover w-full"
+      : aspectRatio === "16:9"
+      ? "aspect-[16/9] object-cover w-full"
+      : "w-full";
   };
 
-  // Render sticker
-  const renderSticker = (sticker) => {
-    switch (sticker.type) {
-      case "heart":
-        return <Heart size={36} color={sticker.color} />;
-      case "star":
-        return <Sparkles size={36} color={sticker.color} />;
-      case "camera":
-        return <Camera size={36} color={sticker.color} />;
-      case "draw":
-        return <PenTool size={36} color={sticker.color} />;
-      default:
-        return null;
+  // Improved helper function to get dynamic sizes for horizontal layout
+  const getHorizontalSizes = () => {
+    const count = photos.length;
+
+    if (count <= 1) return [{ flex: "1" }];
+
+    if (horizontalBalance) {
+      // Equal distribution
+      return photos.map(() => ({ flex: "1" }));
+    } else {
+      // Dynamic sizing based on photo count and position
+      if (count === 2) {
+        return [{ flex: "3" }, { flex: "2" }];
+      } else if (count === 3) {
+        return [{ flex: "2" }, { flex: "1" }, { flex: "2" }];
+      } else if (count === 4) {
+        return [{ flex: "2" }, { flex: "1" }, { flex: "1" }, { flex: "2" }];
+      } else if (count === 5) {
+        return [
+          { flex: "2" },
+          { flex: "1" },
+          { flex: "1.5" },
+          { flex: "1" },
+          { flex: "2" },
+        ];
+      } else if (count >= 6) {
+        // For 6 or more photos, create a pattern of sizes
+        return photos.map((_, idx) => {
+          if (idx % 3 === 0) return { flex: "2" }; // Feature photo
+          if (idx % 3 === 1) return { flex: "1" }; // Smaller photo
+          return { flex: "1.5" }; // Medium photo
+        });
+      }
     }
+    return photos.map(() => ({ flex: "1" }));
   };
 
-  // Render the collage based on selected layout
+  // Improved helper function to determine masonry column count based on photo count
+  const getMasonryColumnCount = () => {
+    const count = photos.length;
+    if (count <= 2) return 1;
+    if (count <= 4) return 2;
+    return 3;
+  };
+
+  // Get optimal grid layout based on photo count
+  const getGridLayout = () => {
+    const count = photos.length;
+
+    // Default layout data structure: rows with photo indices
+    const layouts = {
+      1: [[0]],
+      2: [[0, 1]],
+      3: [[0], [1, 2]],
+      4: [
+        [0, 1],
+        [2, 3],
+      ],
+      5: [
+        [0, 1],
+        [2, 3, 4],
+      ],
+      6: [
+        [0, 1, 2],
+        [3, 4, 5],
+      ],
+    };
+
+    // Return layout or fallback for higher counts
+    return layouts[count] || generateDynamicGridLayout(count);
+  };
+
+  // Generate a dynamic layout for larger numbers of photos
+  const generateDynamicGridLayout = (count) => {
+    const rows = [];
+    let currentRow = [];
+
+    for (let i = 0; i < count; i++) {
+      currentRow.push(i);
+
+      // Create rows with varying numbers of photos (2-3 per row)
+      if (currentRow.length === (i % 2 === 0 ? 3 : 2) || i === count - 1) {
+        rows.push([...currentRow]);
+        currentRow = [];
+      }
+    }
+
+    return rows;
+  };
+
+  // Memoized collage renderer with improved layouts
   const renderCollage = () => {
     if (photos.length === 0) {
       return (
@@ -321,72 +278,212 @@ export default function PhotoBoothResult() {
       );
     }
 
+    // Common image props to avoid repetition
+    const imageProps = {
+      className: `object-cover ${selectedFilter}`,
+      crossOrigin: "anonymous",
+    };
+
+    const horizontalSizes = getHorizontalSizes();
+
     switch (selectedLayout) {
       case "horizontal":
         return (
-          <div className="flex flex-row gap-2 font-serif relative">
-            {photos.map((photo, index) => (
-              <div key={index} className="flex-1">
-                <img
-                  src={photo}
-                  alt={`Photo ${index + 1}`}
-                  className={`w-full object-cover  ${selectedFilter}`}
-                  crossOrigin="anonymous"
-                />
-              </div>
-            ))}
+          <div className="flex flex-col sm:flex-row gap-2 font-serif relative">
+            {photos.map((photo, index) => {
+              const size = horizontalSizes[index] || { flex: "1" };
+              return (
+                <motion.div
+                  key={index}
+                  className="flex-1 min-w-0 overflow-hidden rounded-md"
+                  style={{ flex: size.flex }}
+                  whileHover={{ scale: 1.02 }}
+                  transition={{ duration: 0.2 }}>
+                  <img
+                    src={photo}
+                    alt={`Photo ${index + 1}`}
+                    {...imageProps}
+                    className={`${getAspectRatioClass(photo, index)} ${
+                      imageProps.className
+                    } rounded-md shadow-sm`}
+                  />
+                </motion.div>
+              );
+            })}
           </div>
         );
       case "grid":
+        const gridLayout = getGridLayout();
         return (
-          <div className="grid grid-cols-2 gap-2 font-serif text-vintageRose relative">
-            {photos.map((photo, index) => (
-              <div key={index} className={index === 2 ? "col-span-2" : ""}>
-                <img
-                  src={photo}
-                  alt={`Photo ${index + 1}`}
-                  className={`w-full object-cover rounded-md ${selectedFilter}`}
-                  crossOrigin="anonymous"
-                />
+          <div className="grid gap-3 font-serif text-vintageRose relative">
+            {gridLayout.map((row, rowIndex) => (
+              <div key={`row-${rowIndex}`} className="flex gap-3">
+                {row.map((photoIndex) => {
+                  // Calculate flex values to make some photos larger based on position
+                  const isFeature = row.length < 3 && photoIndex === 0;
+                  const flexValue = isFeature ? "2" : "1";
+
+                  return (
+                    <motion.div
+                      key={photoIndex}
+                      className="overflow-hidden rounded-md shadow-sm"
+                      style={{ flex: flexValue }}
+                      whileHover={{ scale: 1.02 }}
+                      transition={{ duration: 0.2 }}>
+                      <img
+                        src={photos[photoIndex]}
+                        alt={`Photo ${photoIndex + 1}`}
+                        {...imageProps}
+                        className={`w-full rounded-md ${getAspectRatioClass(
+                          photos[photoIndex],
+                          photoIndex
+                        )} ${imageProps.className}`}
+                      />
+                    </motion.div>
+                  );
+                })}
               </div>
             ))}
           </div>
         );
       case "polaroid":
         return (
-          <div className="flex flex-col items-center gap-4 relative">
-            {photos.map((photo, index) => (
-              <div
-                key={index}
-                className="bg-white p-2 pb-8 shadow-md rotate-2 hover:rotate-0 transition-all duration-300">
-                <img
-                  src={photo}
-                  alt={`Photo ${index + 1}`}
-                  className={`w-64 h-48 object-cover ${selectedFilter}`}
-                  crossOrigin="anonymous"
-                />
-              </div>
-            ))}
+          <div className="flex flex-wrap justify-center gap-4 relative">
+            {photos.map((photo, index) => {
+              // Calculate different rotation angles based on position
+              const rotationAngle = ((index % 3) - 1) * polaroidRotation;
+
+              return (
+                <motion.div
+                  key={index}
+                  className="bg-white p-2 pb-8 shadow-md transition-all duration-300"
+                  style={{
+                    transform: `rotate(${rotationAngle}deg)`,
+                    zIndex: photos.length - index,
+                    margin: index % 2 === 0 ? "0 -5px" : "10px 0",
+                  }}
+                  whileHover={{
+                    scale: 1.05,
+                    zIndex: photos.length + 1,
+                    rotate: 0,
+                  }}
+                  transition={{ duration: 0.3 }}>
+                  <img
+                    src={photo}
+                    alt={`Photo ${index + 1}`}
+                    {...imageProps}
+                    className={`w-64 h-48 ${imageProps.className}`}
+                  />
+                  {showDate && (
+                    <div className="text-center mt-2 font-handwritten text-gray-600">
+                      {new Date().toLocaleDateString()}
+                    </div>
+                  )}
+                </motion.div>
+              );
+            })}
+          </div>
+        );
+      case "masonry":
+        const columnCount = getMasonryColumnCount();
+        return (
+          <div
+            className="masonry-grid"
+            style={{
+              display: "grid",
+              gridTemplateColumns: `repeat(${columnCount}, 1fr)`,
+              gap: `${masonryGap * 4}px`,
+              gridAutoRows: "auto",
+            }}>
+            {photos.map((photo, index) => {
+              // Create visual interest with varied heights and spans
+              const isFeature = photos.length > 3 && index === 0;
+              const colSpan = isFeature && columnCount > 1 ? 2 : 1;
+              const rowSpan = isFeature ? 2 : index % 5 === 3 ? 2 : 1;
+
+              return (
+                <motion.div
+                  key={index}
+                  className="mb-2 overflow-hidden rounded-lg shadow-sm"
+                  style={{
+                    gridColumn: isFeature ? "span 2" : "auto",
+                    gridRow: `span ${rowSpan}`,
+                  }}
+                  whileHover={{
+                    scale: 1.03,
+                    zIndex: 1,
+                    boxShadow: "0 10px 25px rgba(0,0,0,0.1)",
+                  }}
+                  transition={{ duration: 0.3 }}>
+                  <img
+                    src={photo}
+                    alt={`Photo ${index + 1}`}
+                    {...imageProps}
+                    className={`w-full h-full rounded-lg ${
+                      rowSpan > 1
+                        ? "object-cover"
+                        : getAspectRatioClass(photo, index)
+                    } ${imageProps.className}`}
+                  />
+                </motion.div>
+              );
+            })}
           </div>
         );
       default: // vertical layout
         return (
           <div className="flex flex-col gap-2 text-vintageRose relative">
-            {photos.map((photo, index) => (
-              <div key={index}>
-                <img
-                  src={photo}
-                  alt={`Photo ${index + 1}`}
-                  className={`w-full object-cover ${selectedFilter}`}
-                  crossOrigin="anonymous"
-                />
-              </div>
-            ))}
+            {photos.map((photo, index) => {
+              // Make first photo larger in vertical layout with 3+ photos
+              const isFeature = photos.length >= 3 && index === 0;
+
+              return (
+                <motion.div
+                  key={index}
+                  className={isFeature ? "mb-1" : ""}
+                  whileHover={{ scale: 1.01 }}
+                  transition={{ duration: 0.2 }}>
+                  <img
+                    src={photo}
+                    alt={`Photo ${index + 1}`}
+                    {...imageProps}
+                    className={`w-full ${getAspectRatioClass(photo, index)} ${
+                      imageProps.className
+                    } rounded-md shadow-sm`}
+                  />
+                </motion.div>
+              );
+            })}
           </div>
         );
     }
   };
 
+  // Memoize the collage to prevent unnecessary re-renders
+  const memoizedCollage = useMemo(
+    () => renderCollage(),
+    [
+      photos,
+      selectedLayout,
+      selectedFilter,
+      aspectRatio,
+      polaroidRotation,
+      masonryGap,
+      horizontalBalance,
+      showDate,
+    ]
+  );
+
+  // Memoized button variants to avoid repetition
+  const getButtonClass = (isActive, isPrimary = false) => {
+    return `px-3 py-${
+      isPrimary ? "3" : "2"
+    } text-xs rounded-lg transition-all duration-200 ${
+      isActive
+        ? `bg-${isPrimary ? "rose-500" : "vintageRose"} text-white font-medium`
+        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+    }`;
+  };
   return (
     <div className="min-h-screen flex flex-col font-serif items-center justify-center text-vintageRose bg-vintageBg p-4 md:p-6">
       <AnimatePresence>
@@ -399,18 +496,7 @@ export default function PhotoBoothResult() {
               className="flex flex-col items-center"
               initial={{ scale: 0.8 }}
               animate={{ scale: [0.8, 1.2, 1] }}
-              transition={{ duration: 1 }}>
-              <Camera size={60} className="text-vintageRose mb-4" />
-              <motion.div
-                className="h-1 bg-vintageGold rounded-full w-48"
-                initial={{ width: 0 }}
-                animate={{ width: 192 }}
-                transition={{ duration: 1, ease: "easeInOut" }}
-              />
-              <p className="mt-4 text-lg text-vintageRose font-medium">
-                Creating your masterpiece...
-              </p>
-            </motion.div>
+              transition={{ duration: 1 }}></motion.div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -426,23 +512,25 @@ export default function PhotoBoothResult() {
           className="flex-1 p-4 rounded-lg overflow-hidden shadow-md transition-all duration-300 min-h-64 relative"
           style={{ backgroundColor: bgColor }}
           whileHover={{ boxShadow: "0 10px 25px rgba(0,0,0,0.1)" }}>
-          {renderCollage()}
+          {memoizedCollage}
 
           {/* Branding & Bottom Spacing */}
-          <motion.div
-            className="flex flex-col items-center justify-center mt-6 py-4 w-full"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1 }}>
-            <span className="text-lg font-bold tracking-wide text-[#b56b75] flex items-center gap-2">
-              Rohva
-            </span>
-            {showDate && (
-              <p className="text-sm text-[#b56b75]">
-                {new Date().toLocaleDateString()}
-              </p>
-            )}
-          </motion.div>
+          {photos.length > 0 && (
+            <motion.div
+              className="flex flex-col items-center justify-center mt-6 py-4 w-full"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1 }}>
+              <span className="text-lg font-bold tracking-wide text-[#b56b75] flex items-center gap-2">
+                Rohva
+              </span>
+              {showDate && (
+                <p className="text-sm text-[#b56b75]">
+                  {new Date().toLocaleDateString()}
+                </p>
+              )}
+            </motion.div>
+          )}
         </motion.div>
 
         {/* Right Side - Controls */}
@@ -465,25 +553,149 @@ export default function PhotoBoothResult() {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6, delay: 0.9 }}>
-            <p className="text-sm font-semibold text-vintageRose text-gray-600 mb-2">
-              Layout
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {layouts.map((layout) => (
-                <motion.button
-                  key={layout.id}
-                  onClick={() => setSelectedLayout(layout.id)}
-                  className={`px-3 py-2 text-xs rounded-lg transition-all duration-200 ${
-                    selectedLayout === layout.id
-                      ? "bg-vintageRose text-white font-medium"
-                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                  }`}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}>
-                  {layout.label}
-                </motion.button>
-              ))}
-            </div>
+            <button
+              className="flex items-center justify-between w-full text-left"
+              onClick={() => setShowLayoutOptions(!showLayoutOptions)}>
+              <p className="text-sm font-semibold text-vintageRose text-gray-600 mb-2">
+                Layout
+              </p>
+              <motion.span
+                animate={{ rotate: showLayoutOptions ? 180 : 0 }}
+                transition={{ duration: 0.3 }}>
+                ▼
+              </motion.span>
+            </button>
+
+            <AnimatePresence>
+              {showLayoutOptions && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.3 }}>
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {LAYOUTS.map((layout) => {
+                      const IconComponent = layout.icon;
+                      return (
+                        <motion.button
+                          key={layout.id}
+                          onClick={() => setSelectedLayout(layout.id)}
+                          className={`flex flex-col items-center justify-center p-2 rounded-lg ${
+                            selectedLayout === layout.id
+                              ? "bg-vintageRose text-white"
+                              : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                          }`}
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}>
+                          <IconComponent size={18} className="mb-1" />
+                          <span className="text-xs">{layout.label}</span>
+                        </motion.button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Layout-specific options */}
+                  {selectedLayout === "polaroid" && (
+                    <div className="pt-2 border-t border-gray-100 mt-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">Rotation</span>
+                        <input
+                          type="range"
+                          min="0"
+                          max="10"
+                          value={polaroidRotation}
+                          onChange={(e) =>
+                            setPolaroidRotation(parseInt(e.target.value))
+                          }
+                          className="w-32"
+                        />
+                        <span className="text-xs text-gray-500 ml-2">
+                          {polaroidRotation}°
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Horizontal layout options */}
+                  {selectedLayout === "horizontal" && (
+                    <div className="pt-2 border-t border-gray-100 mt-2">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm text-gray-600">
+                          Photo Balance
+                        </span>
+                        <div className="flex gap-2">
+                          <motion.button
+                            onClick={() => setHorizontalBalance(true)}
+                            className={`px-2 py-1 text-xs rounded-lg ${
+                              horizontalBalance
+                                ? "bg-vintageGold text-white"
+                                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                            }`}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}>
+                            Equal
+                          </motion.button>
+                          <motion.button
+                            onClick={() => setHorizontalBalance(false)}
+                            className={`px-2 py-1 text-xs rounded-lg ${
+                              !horizontalBalance
+                                ? "bg-vintageGold text-white"
+                                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                            }`}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}>
+                            Dynamic
+                          </motion.button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Masonry layout options */}
+                  {selectedLayout === "masonry" && (
+                    <div className="pt-2 border-t border-gray-100 mt-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">Gap Size</span>
+                        <input
+                          type="range"
+                          min="1"
+                          max="4"
+                          value={masonryGap}
+                          onChange={(e) =>
+                            setMasonryGap(parseInt(e.target.value))
+                          }
+                          className="w-32"
+                        />
+                        <span className="text-xs text-gray-500 ml-2">
+                          {masonryGap}x
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Aspect ratio options */}
+                  <div className="pt-2 border-t border-gray-100 mt-2">
+                    <p className="text-sm text-gray-600 mb-2">Aspect Ratio</p>
+                    <div className="flex flex-wrap gap-2">
+                      {ASPECT_RATIOS.map((ratio) => (
+                        <motion.button
+                          key={ratio.id}
+                          onClick={() => setAspectRatio(ratio.id)}
+                          className={`px-3 py-1 text-xs rounded-lg ${
+                            aspectRatio === ratio.id
+                              ? "bg-vintageGold text-white"
+                              : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                          }`}
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}>
+                          {ratio.label}
+                        </motion.button>
+                      ))}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </motion.div>
 
           {/* Filters */}
@@ -492,8 +704,8 @@ export default function PhotoBoothResult() {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6, delay: 1 }}>
-            <div
-              className="flex items-center justify-between cursor-pointer"
+            <button
+              className="flex items-center justify-between w-full text-left"
               onClick={() => setShowFilters(!showFilters)}>
               <p className="text-sm font-semibold text-gray-600">Filters</p>
               <motion.span
@@ -501,7 +713,7 @@ export default function PhotoBoothResult() {
                 transition={{ duration: 0.3 }}>
                 ▼
               </motion.span>
-            </div>
+            </button>
 
             <AnimatePresence>
               {showFilters && (
@@ -511,7 +723,7 @@ export default function PhotoBoothResult() {
                   exit={{ height: 0, opacity: 0 }}
                   transition={{ duration: 0.3 }}>
                   <div className="flex flex-wrap gap-2 mt-2 pt-2 border-t border-gray-100">
-                    {filters.map((filter) => (
+                    {FILTERS.map((filter) => (
                       <motion.button
                         key={filter.id}
                         onClick={() => setSelectedFilter(filter.id)}
@@ -541,11 +753,11 @@ export default function PhotoBoothResult() {
               Background
             </p>
             <div className="flex flex-wrap gap-2">
-              {bgColors.map((color) => (
+              {BG_COLORS.map((color) => (
                 <motion.button
                   key={color.color}
                   onClick={() => setBgColor(color.color)}
-                  className={`w-8 h-8 rounded-full border-2 transition-all duration-200 flex items-center justify-center`}
+                  className="w-8 h-8 rounded-full border-2 transition-all duration-200 flex items-center justify-center"
                   style={{
                     backgroundColor: color.color,
                     borderColor:
@@ -553,6 +765,7 @@ export default function PhotoBoothResult() {
                   }}
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.95 }}
+                  aria-label={color.label}
                   title={color.label}>
                   {bgColor === color.color && (
                     <Check size={16} className="text-vintageRose" />
@@ -623,72 +836,6 @@ export default function PhotoBoothResult() {
               )}
             </motion.button>
 
-            <div className="flex gap-2">
-              <motion.button
-                onClick={() => setShowShareOptions(!showShareOptions)}
-                className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg font-medium bg-amber-500 text-white hover:bg-amber-600 transition-all duration-200"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}>
-                <Share2 size={18} className="text-white" />
-                <span className="text-white">Share</span>
-              </motion.button>
-
-              <motion.button
-                onClick={copyToClipboard}
-                className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg font-medium bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 transition-all duration-200"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}>
-                {copied ? (
-                  <>
-                    <Check size={18} className="text-green-500" />
-                    <span>Copied!</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy size={18} />
-                    <span>Copy</span>
-                  </>
-                )}
-              </motion.button>
-            </div>
-
-            {/* Share Options */}
-            <AnimatePresence>
-              {showShareOptions && (
-                <motion.div
-                  className="flex gap-2 mt-2"
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.3 }}>
-                  <motion.button
-                    onClick={() => shareDirectOnSocialMedia("instagram")}
-                    className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg font-medium bg-[#E4405F] text-white hover:bg-opacity-90 transition-all duration-200"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}>
-                    <Instagram size={18} className="text-white" />
-                    <span>Instagram</span>
-                  </motion.button>
-                  <motion.button
-                    onClick={() => shareDirectOnSocialMedia("facebook")}
-                    className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg font-medium bg-[#1877F2] text-white hover:bg-opacity-90 transition-all duration-200"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}>
-                    <Facebook size={18} className="text-white" />
-                    <span>Facebook</span>
-                  </motion.button>
-                  <motion.button
-                    onClick={() => shareDirectOnSocialMedia("twitter")}
-                    className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg font-medium bg-[#1DA1F2] text-white hover:bg-opacity-90 transition-all duration-200"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}>
-                    <Twitter size={18} className="text-white" />
-                    <span>Twitter</span>
-                  </motion.button>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
             <motion.button
               onClick={() => router.push("/photo-booth")}
               className="flex items-center justify-center gap-2 w-full py-2 rounded-lg font-medium bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 transition-all duration-200 mt-2"
@@ -708,7 +855,7 @@ export default function PhotoBoothResult() {
         animate={{ opacity: 1 }}
         transition={{ delay: 1.5 }}>
         <p>Created with ♥ by Rohva</p>
-        <p className="mt-1">Share your creations with #Rohva</p>
+        <p className="mt-1">Share your creations #Rohva</p>
       </motion.div>
     </div>
   );

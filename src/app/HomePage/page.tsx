@@ -18,6 +18,7 @@ import {
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
+import Image from "next/image";
 
 interface Firefly {
   top: string;
@@ -269,7 +270,7 @@ export default function HomePage() {
               rotate: { delay: 0.8, duration: 0.5 },
             }}>
             <div className="bg-vintageRose bg-opacity-10 rounded-full">
-              <img
+              <Image
                 src="/vercel.png"
                 alt="Camera"
                 width={90}

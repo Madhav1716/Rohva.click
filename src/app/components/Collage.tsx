@@ -1,10 +1,12 @@
-export default function Collage({ images }) {
+import Image from "next/image";
+
+export default function Collage({ images = [] }) {
   return (
     <div className="w-full max-w-xs mx-auto bg-white p-4 rounded-lg shadow-md overflow-hidden">
       {/* Photo Strip - Matches PhotoBooth Shape */}
       <div className="flex flex-col gap-2">
         {images.map((img, index) => (
-          <img
+          <Image
             key={index}
             src={img}
             className="w-full rounded-lg"
