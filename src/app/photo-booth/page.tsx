@@ -9,7 +9,6 @@ import {
   CheckCircle,
   Timer,
   Zap,
-  Camera as CameraIcon,
   Sparkles,
   Sun,
   Moon,
@@ -123,12 +122,18 @@ export default function PhotoBooth() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}>
         <motion.div
-          className="text-2xl font-semibold text-center mb-4 flex items-center justify-center gap-2"
+          className="text-2xl font-semibold text-center mb-2 flex items-center justify-center"
           initial={{ scale: 0.8 }}
           animate={{ scale: 1 }}
           transition={{ duration: 0.5, delay: 0.2 }}>
-          <CameraIcon size={28} className="text-vintageRose" />
-          <span className="text-vintageRose">Photo Booth</span>
+          <img
+            src="/vercel.png"
+            alt="Camera"
+            width={60}
+            height={60}
+            className="text-vintageRose"
+          />
+          {/* <span className="text-vintageRose">Rohva</span> */}
         </motion.div>
 
         {/* Camera */}
@@ -308,7 +313,7 @@ export default function PhotoBooth() {
             className={`flex-1 py-3 rounded-lg text-sm flex items-center justify-center gap-2 transition-all duration-300 ${
               photos.length < 3
                 ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                : "bg-blue-500 text-white hover:bg-blue-600 hover:shadow-md"
+                : "bg-vintageRose text-white hover:bg-blue-600 hover:shadow-md"
             }`}
             whileHover={photos.length === 3 ? { scale: 1.03 } : {}}
             whileTap={photos.length === 3 ? { scale: 0.97 } : {}}>

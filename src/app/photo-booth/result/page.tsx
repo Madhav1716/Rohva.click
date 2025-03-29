@@ -24,7 +24,7 @@ export default function PhotoBoothResult() {
   const [photos, setPhotos] = useState([]);
   const [showDate, setShowDate] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
-  const [showStickers, setShowStickers] = useState(false);
+
   const [selectedLayout, setSelectedLayout] = useState("vertical");
   const collageRef = useRef(null);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -32,7 +32,6 @@ export default function PhotoBoothResult() {
   const [showShareOptions, setShowShareOptions] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState("");
   const [loadingEffect, setLoadingEffect] = useState(true);
-  const [activeStickers, setActiveStickers] = useState([]);
 
   // Background colors with labels
   const bgColors = [
@@ -46,6 +45,119 @@ export default function PhotoBoothResult() {
     { color: "#f8f1e4", label: "Vintage" },
   ];
   const [bgColor, setBgColor] = useState(bgColors[0].color);
+
+  const shareDirectOnSocialMedia = async (platform) => {
+    if (!collageRef.current) {
+      alert("No image to share.");
+      return;
+    }
+
+    try {
+      // Generate shareable image
+      const dataUrl = await domtoimage.toJpeg(collageRef.current, {
+        quality: 0.95,
+        bgcolor: bgColor,
+      });
+
+      // Create blob from data URL
+      const blob = await (await fetch(dataUrl)).blob();
+      const file = new File([blob], "rohva-photobooth.jpg", {
+        type: "image/jpeg",
+      });
+
+      // Prepare sharing content
+      const caption =
+        "Capturing memories with style! 📸✨ Created on @Rohva #RohvaPhotoBooth";
+
+      // Platform-specific sharing logic
+      switch (platform) {
+        case "twitter":
+          shareOnTwitter(file, caption);
+          break;
+        case "facebook":
+          shareOnFacebook(file, caption);
+          break;
+        case "instagram":
+          shareOnInstagram(file, caption);
+          break;
+        default:
+          alert("Sharing not supported for this platform.");
+      }
+
+      // Celebration effect
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 },
+      });
+    } catch (error) {
+      console.error("Sharing error:", error);
+      alert("Failed to prepare sharing content. Please try again.");
+    }
+  };
+
+  // Twitter Sharing (Web Intent with Image)
+  const shareOnTwitter = (file, caption) => {
+    // Twitter's web intent doesn't support direct image upload
+    const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(
+      caption
+    )}`;
+    window.open(twitterShareUrl, "_blank", "width=600,height=400");
+
+    // Note: Actual image upload requires Twitter API
+    alert("Please manually upload the image after the tweet window opens.");
+  };
+
+  // Facebook Sharing
+  const shareOnFacebook = (file, caption) => {
+    // Facebook sharing requires app or complex API
+    const facebookShareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
+      window.location.href
+    )}`;
+
+    // Open sharing dialog
+    const shareWindow = window.open(
+      facebookShareUrl,
+      "_blank",
+      "width=600,height=400"
+    );
+
+    // Attempt to pass image (limited browser support)
+    if (navigator.clipboard) {
+      navigator.clipboard
+        .write([
+          new ClipboardItem({
+            [file.type]: file,
+          }),
+        ])
+        .then(() => {
+          alert("Image copied. Paste it in the Facebook post.");
+        })
+        .catch((err) => {
+          console.error("Failed to copy image", err);
+        });
+    }
+  };
+
+  // Instagram Sharing
+  const shareOnInstagram = (file, caption) => {
+    // Instagram primarily requires mobile app for direct posting
+    if (
+      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+        navigator.userAgent
+      )
+    ) {
+      // Deep link to Instagram create post (limited functionality)
+      const instagramShareUrl = `instagram://library?AssetPath=${encodeURIComponent(
+        file.name
+      )}&Caption=${encodeURIComponent(caption)}`;
+      window.location.href = instagramShareUrl;
+    } else {
+      alert(
+        "Instagram sharing is best done from a mobile device. Please use the Instagram app."
+      );
+    }
+  };
 
   // Layouts
   const layouts = [
@@ -65,16 +177,6 @@ export default function PhotoBoothResult() {
     { id: "filter-blur", label: "Soft Focus" },
   ];
 
-  // Stickers
-  const stickers = [
-    { id: "heart", icon: <Heart size={24} />, color: "#ff6b6b" },
-    { id: "star", icon: <Sparkles size={24} />, color: "#ffd43b" },
-    { id: "camera", icon: <Camera size={24} />, color: "#4dabf7" },
-    { id: "draw", icon: <PenTool size={24} />, color: "#38d9a9" },
-  ];
-
-  // Handle sticker drag
-
   // Simulated loading effect
   useEffect(() => {
     setTimeout(() => {
@@ -91,8 +193,12 @@ export default function PhotoBoothResult() {
 
   useEffect(() => {
     const savedPhotos = localStorage.getItem("photos");
+    const savedFilter = localStorage.getItem("selectedFilter");
     if (savedPhotos) {
       setPhotos(JSON.parse(savedPhotos));
+    }
+    if (savedFilter) {
+      setSelectedFilter(savedFilter);
     }
   }, []);
 
@@ -134,7 +240,7 @@ export default function PhotoBoothResult() {
 
       // Create a download link
       const link = document.createElement("a");
-      link.download = `vintage-photobooth-${new Date()
+      link.download = `rohva-photobooth-${new Date()
         .toISOString()
         .slice(0, 10)}.jpg`;
       link.href = dataUrl;
@@ -322,35 +428,6 @@ export default function PhotoBoothResult() {
           whileHover={{ boxShadow: "0 10px 25px rgba(0,0,0,0.1)" }}>
           {renderCollage()}
 
-          {/* Active Stickers */}
-          {activeStickers.map((sticker) => (
-            <motion.div
-              key={sticker.id}
-              className="absolute cursor-move"
-              drag
-              dragMomentum={false}
-              onDragEnd={(event, info) =>
-                handleDragEnd(event, info, sticker.id)
-              }
-              style={{
-                left: sticker.position.x,
-                top: sticker.position.y,
-                rotate: sticker.rotation,
-                scale: sticker.scale,
-                zIndex: 10,
-              }}
-              whileHover={{ scale: sticker.scale * 1.1 }}>
-              <div className="relative">
-                {renderSticker(sticker)}
-                <button
-                  onClick={() => removeSticker(sticker.id)}
-                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs">
-                  ×
-                </button>
-              </div>
-            </motion.div>
-          ))}
-
           {/* Branding & Bottom Spacing */}
           <motion.div
             className="flex flex-col items-center justify-center mt-6 py-4 w-full"
@@ -358,7 +435,7 @@ export default function PhotoBoothResult() {
             animate={{ opacity: 1 }}
             transition={{ delay: 1 }}>
             <span className="text-lg font-bold tracking-wide text-[#b56b75] flex items-center gap-2">
-              Vintage Booth
+              Rohva
             </span>
             {showDate && (
               <p className="text-sm text-[#b56b75]">
@@ -448,53 +525,6 @@ export default function PhotoBoothResult() {
                         {filter.label}
                       </motion.button>
                     ))}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </motion.div>
-
-          {/* Stickers */}
-          <motion.div
-            className="bg-white p-3 rounded-lg shadow-sm overflow-hidden"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6, delay: 1.1 }}>
-            <div
-              className="flex items-center justify-between cursor-pointer"
-              onClick={() => setShowStickers(!showStickers)}>
-              <p className="text-sm font-semibold text-gray-600">
-                Stickers & Charms
-              </p>
-              <motion.span
-                animate={{ rotate: showStickers ? 180 : 0 }}
-                transition={{ duration: 0.3 }}>
-                ▼
-              </motion.span>
-            </div>
-
-            <AnimatePresence>
-              {showStickers && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.3 }}>
-                  <div className="flex flex-wrap gap-3 mt-2 pt-2 border-t border-gray-100">
-                    {stickers.map((sticker) => (
-                      <motion.button
-                        key={sticker.id}
-                        onClick={() => addSticker(sticker)}
-                        className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-all duration-200 flex items-center justify-center"
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.95 }}
-                        style={{ color: sticker.color }}>
-                        {sticker.icon}
-                      </motion.button>
-                    ))}
-                  </div>
-                  <div className="text-xs text-gray-500 mt-2">
-                    Tip: Drag stickers to position them. Click the x to remove.
                   </div>
                 </motion.div>
               )}
@@ -632,22 +662,28 @@ export default function PhotoBoothResult() {
                   exit={{ opacity: 0, height: 0 }}
                   transition={{ duration: 0.3 }}>
                   <motion.button
+                    onClick={() => shareDirectOnSocialMedia("instagram")}
                     className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg font-medium bg-[#E4405F] text-white hover:bg-opacity-90 transition-all duration-200"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}>
                     <Instagram size={18} className="text-white" />
+                    <span>Instagram</span>
                   </motion.button>
                   <motion.button
+                    onClick={() => shareDirectOnSocialMedia("facebook")}
                     className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg font-medium bg-[#1877F2] text-white hover:bg-opacity-90 transition-all duration-200"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}>
                     <Facebook size={18} className="text-white" />
+                    <span>Facebook</span>
                   </motion.button>
                   <motion.button
+                    onClick={() => shareDirectOnSocialMedia("twitter")}
                     className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg font-medium bg-[#1DA1F2] text-white hover:bg-opacity-90 transition-all duration-200"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}>
                     <Twitter size={18} className="text-white" />
+                    <span>Twitter</span>
                   </motion.button>
                 </motion.div>
               )}
@@ -671,8 +707,8 @@ export default function PhotoBoothResult() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1.5 }}>
-        <p>Created with ♥ by Vintage Booth</p>
-        <p className="mt-1">Share your creations with #VintageBooth</p>
+        <p>Created with ♥ by Rohva</p>
+        <p className="mt-1">Share your creations with #Rohva</p>
       </motion.div>
     </div>
   );
