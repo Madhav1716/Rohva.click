@@ -44,7 +44,6 @@ interface FloatingElement {
 export default function HomePage() {
   const [fireflies, setFireflies] = useState<Firefly[]>([]);
   const router = useRouter();
-  const [hover, setHover] = useState(false);
   const [ripple, setRipple] = useState<Ripple | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
@@ -307,11 +306,9 @@ export default function HomePage() {
             )}
             <motion.button
               className="flex items-center justify-center gap-2 bg-brown-50 border border-vintageGold text-vintageRose px-6 py-3 rounded-full text-sm shadow-sm transition duration-300"
-              onMouseEnter={() => setHover(true)}
-              onMouseLeave={() => setHover(false)}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}>
-              <Camera className={`w-4 h-4 ${hover ? "animate-pulse" : ""}`} />
+              <Camera />
               <span>Capture Now</span>
             </motion.button>
           </div>

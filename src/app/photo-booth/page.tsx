@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Webcam from "react-webcam";
@@ -19,16 +18,17 @@ import {
   Sliders,
 } from "lucide-react";
 import confetti from "canvas-confetti";
+import Image from "next/image";
 
 export default function PhotoBooth() {
-  const webcamRef = useRef(null);
+  const webcamRef = useRef<Webcam>(null);
   const router = useRouter();
-  const [photos, setPhotos] = useState([]);
-  const [countdown, setCountdown] = useState(null);
+  const [photos, setPhotos] = useState<string[]>([]);
+  const [countdown, setCountdown] = useState<number | null>(null);
   const [autoSnap, setAutoSnap] = useState(false);
   const [timerDuration, setTimerDuration] = useState(3);
   const [filter, setFilter] = useState("");
-  const photoContainerRef = useRef(null);
+  const photoContainerRef = useRef<HTMLDivElement>(null);
   const [showHint, setShowHint] = useState(true);
   const [photoCount, setPhotoCount] = useState(3);
   const [showSettings, setShowSettings] = useState(false);
@@ -63,7 +63,9 @@ export default function PhotoBooth() {
   const capturePhoto = useCallback(() => {
     if (photos.length < photoCount && webcamRef.current) {
       const imageSrc = webcamRef.current.getScreenshot();
-      setPhotos((prevPhotos) => [...prevPhotos, imageSrc]);
+      if (imageSrc) {
+        setPhotos((prevPhotos) => [...prevPhotos, imageSrc]);
+      }
 
       // Trigger selected capture effect
       triggerCaptureEffect();
@@ -77,7 +79,7 @@ export default function PhotoBooth() {
   }, [photos, photoCount, autoSnap, timerDuration]);
 
   useEffect(() => {
-    let timer = null;
+    let timer: NodeJS.Timeout | null = null;
 
     if (countdown !== null && countdown > 0) {
       timer = setTimeout(() => {
@@ -112,14 +114,16 @@ export default function PhotoBooth() {
           y: (rect.top + rect.height / 2) / window.innerHeight,
         },
       });
-    } else if (captureEffect === "flash") {
+    } else if (captureEffect === "flash" && photoContainerRef.current) {
       const flashElement = document.createElement("div");
       flashElement.className = "absolute inset-0 bg-white z-50";
       flashElement.style.opacity = "0.8";
       photoContainerRef.current.appendChild(flashElement);
 
       setTimeout(() => {
-        photoContainerRef.current.removeChild(flashElement);
+        if (photoContainerRef.current) {
+          photoContainerRef.current.removeChild(flashElement);
+        }
       }, 150);
     } else if (captureEffect === "shutter") {
       const audio = new Audio("/shutter-sound.mp3");
@@ -155,7 +159,7 @@ export default function PhotoBooth() {
     setFacingMode(facingMode === "user" ? "environment" : "user");
   };
 
-  const downloadPhoto = (index) => {
+  const downloadPhoto = (index: number) => {
     if (photos[index]) {
       const link = document.createElement("a");
       link.href = photos[index];
@@ -166,7 +170,7 @@ export default function PhotoBooth() {
     }
   };
 
-  const removePhoto = (index) => {
+  const removePhoto = (index: number) => {
     const newPhotos = [...photos];
     newPhotos.splice(index, 1);
     setPhotos(newPhotos);
@@ -318,20 +322,20 @@ export default function PhotoBooth() {
           </AnimatePresence>
         </motion.div>
 
-        <motion.div
-          className="mb-4 text-center flex items-center justify-center gap-2 bg-gray-50 rounded-lg p-2 shadow-sm"
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.4 }}>
+        <motion.div className="mb-4 text-center flex items-center justify-center gap-2 bg-gray-50 rounded-lg p-2 shadow-sm">
           <Timer size={20} className="text-vintageRose" />
-          <label className="text-gray-600 text-sm">Timer:</label>
+          <label htmlFor="timer-range" className="text-gray-600 text-sm">
+            Timer:
+          </label>
           <input
+            id="timer-range"
             type="range"
             min="3"
             max="10"
             value={timerDuration}
             onChange={(e) => setTimerDuration(parseInt(e.target.value))}
             className="w-24 accent-vintageRose"
+            aria-label="Timer duration"
           />
           <span className="text-sm text-vintageRose font-semibold">
             {timerDuration}s
@@ -365,13 +369,10 @@ export default function PhotoBooth() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.6 }}>
-          <div
-            className={`grid ${
-              photoCount > 3 ? "grid-cols-3" : "grid-cols-3"
-            } gap-2`}>
+          <div className="grid grid-cols-3 gap-2">
             {Array(photoCount)
               .fill(null)
-              .map((_, index) => (
+              .map((_, index: number) => (
                 <motion.div
                   key={index}
                   className={`aspect-square rounded-lg overflow-hidden border ${
