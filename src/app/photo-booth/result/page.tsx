@@ -12,7 +12,7 @@ import {
   LucideIcon,
   ChevronDown,
 } from "lucide-react";
-import * as domtoimage from "dom-to-image";
+import domtoimage from "dom-to-image-more";
 import confetti from "canvas-confetti";
 
 // Type declarations
