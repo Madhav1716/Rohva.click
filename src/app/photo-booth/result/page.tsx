@@ -365,10 +365,16 @@ export default function PhotoBoothResult() {
 
     setIsDownloading(true);
     try {
+      // Add a class to the collage container before download
+      collageRef.current.classList.add('downloading');
+      
       const dataUrl = await domtoimage.toJpeg(collageRef.current, {
         quality: 1.0,
-        bgcolor: bgColor,
+        bgcolor: bgColor
       });
+
+      // Remove the download class
+      collageRef.current.classList.remove('downloading');
 
       const link = document.createElement("a");
       link.download = "photo-booth-collage.jpg";
@@ -377,6 +383,10 @@ export default function PhotoBoothResult() {
     } catch (error) {
       console.error("Error downloading collage:", error);
       alert("Failed to download collage. Please try again.");
+      // Make sure to remove the class even if there's an error
+      if (collageRef.current) {
+        collageRef.current.classList.remove('downloading');
+      }
     } finally {
       setIsDownloading(false);
     }
@@ -423,7 +433,7 @@ export default function PhotoBoothResult() {
           return (
             <motion.div
               key={index}
-              className="mb-2 overflow-hidden rounded-lg shadow-sm flex flex-col"
+              className="masonry-item mb-2 overflow-hidden rounded-lg shadow-sm flex flex-col"
               style={{
                 gridColumn: `span ${colSpan}`,
                 gridRow: `span ${rowSpan}`,
@@ -453,13 +463,13 @@ export default function PhotoBoothResult() {
     if (!photos.length) return null;
 
     return (
-      <div className="flex flex-wrap justify-center gap-4 relative">
+      <div className="polaroid-layout flex flex-wrap justify-center gap-4 relative">
         {photos.map((photo, index) => {
           const rotationAngle = ((index % 3) - 1) * polaroidRotation;
           return (
             <motion.div
               key={index}
-              className="bg-white p-2 pb-8 shadow-md transition-all duration-300"
+              className="polaroid-item bg-white p-2 pb-8 shadow-md transition-all duration-300"
               style={{
                 transform: `rotate(${rotationAngle}deg)`,
                 zIndex: photos.length - index,
@@ -488,19 +498,21 @@ export default function PhotoBoothResult() {
     if (!photos.length) return null;
 
     return (
-      <div className="flex flex-col gap-2 text-vintageRose relative">
+      <div className="vertical-layout flex flex-col gap-2 text-vintageRose relative">
         {photos.map((photo, index) => {
           const isFeature = photos.length >= 3 && index === 0;
           return (
             <motion.div
               key={index}
-              className={isFeature ? "mb-1" : ""}
+              className={`vertical-item ${isFeature ? "mb-1" : ""}`}
               whileHover={{ scale: 1.01 }}
               transition={{ duration: 0.2 }}>
               <img
                 src={photo.src}
                 alt={photo.alt}
-                className={`w-full ${getAspectRatioClass()} ${selectedFilter} rounded-md shadow-sm`}
+                className={`w-full rounded-lg shadow-sm ${
+                  isFeature ? "max-h-96" : "max-h-64"
+                } ${getAspectRatioClass()} ${selectedFilter}`}
                 style={{ objectFit: "cover" }}
               />
             </motion.div>
@@ -547,6 +559,66 @@ export default function PhotoBoothResult() {
 
   return (
     <div className="min-h-screen flex flex-col font-serif items-center justify-center text-vintageRose bg-vintageBg p-4 md:p-6">
+      <style jsx global>{`
+        /* Styles for download mode */
+        .downloading {
+          padding: 0 !important;
+          margin: 0 !important;
+          border: none !important;
+          border-radius: 0 !important;
+          box-shadow: none !important;
+          background-color: transparent !important;
+        }
+        
+        .downloading * {
+          box-shadow: none !important;
+          border: none !important;
+          border-radius: 0 !important;
+          background-color: transparent !important;
+        }
+        
+        .downloading .masonry-item,
+        .downloading .polaroid-item,
+        .downloading .vertical-item {
+          transform: none !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          background: transparent !important;
+        }
+        
+        .downloading .masonry-grid,
+        .downloading .polaroid-layout,
+        .downloading .vertical-layout {
+          gap: 4px !important;
+          padding: 0 !important;
+          margin: 0 !important;
+          background-color: transparent !important;
+        }
+        
+        .downloading img {
+          margin: 0 !important;
+          padding: 0 !important;
+          border: none !important;
+          border-radius: 0 !important;
+        }
+      `}</style>
+
+      {/* Buy me a Pizza button */}
+      <motion.div
+        className="fixed top-4 left-4 z-50"
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ delay: 0.5, duration: 0.5 }}
+        whileHover={{ scale: 1.05 }}>
+        <a href="https://www.buymeacoffee.com/maddy.17" target="_blank" rel="noopener noreferrer">
+          <img 
+            src="https://img.buymeacoffee.com/button-api/?text=Buy me a Pizza&emoji=🍕&slug=maddy.17&button_colour=FF5F5F&font_colour=ffffff&font_family=Cookie&outline_colour=000000&coffee_colour=FFDD00"
+            alt="Buy me a Pizza"
+            className="hover:opacity-90 transition-opacity"
+          />
+        </a>
+      </motion.div>
+
       <AnimatePresence>
         {loadingEffect && (
           <motion.div
@@ -627,8 +699,8 @@ export default function PhotoBoothResult() {
                     }`}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}>
-                    <IconComponent size={18} className="mb-1" />
-                    <span className="text-xs">{layout.label}</span>
+                      <IconComponent size={18} className="mb-1" />
+                      <span className="text-xs">{layout.label}</span>
                   </motion.button>
                 );
               })}

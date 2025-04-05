@@ -506,6 +506,32 @@ export default function PhotoBooth() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        <div className="flex justify-center mt-4">
+          <motion.button
+            onClick={handleDone}
+            className="bg-vintageRose text-white px-6 py-2 rounded-full hover:bg-opacity-90 transition-all flex items-center gap-2"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}>
+            <CheckCircle size={18} />
+            Done
+          </motion.button>
+        </div>
+
+        {/* Buy me a coffee button */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3, duration: 0.5 }}
+          className="mt-6 flex justify-center">
+          <a href="https://www.buymeacoffee.com/maddy.17" target="_blank" rel="noopener noreferrer">
+            <img 
+              src="https://img.buymeacoffee.com/button-api/?text=Buy me a Pizza&emoji=🍕&slug=maddy.17&button_colour=FF5F5F&font_colour=ffffff&font_family=Cookie&outline_colour=000000&coffee_colour=FFDD00"
+              alt="Buy me a Pizza"
+              className="hover:opacity-90 transition-opacity"
+            />
+          </a>
+        </motion.div>
       </motion.div>
 
       <style jsx global>{`

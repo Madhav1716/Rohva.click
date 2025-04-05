@@ -178,6 +178,22 @@ export default function HomePage() {
           />
         </div>
 
+        {/* Buy me a Pizza button in top left corner */}
+        <motion.div
+          className="fixed top-4 left-4 z-50"
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.5, duration: 0.5 }}
+          whileHover={{ scale: 1.05 }}>
+          <a href="https://www.buymeacoffee.com/maddy.17" target="_blank" rel="noopener noreferrer">
+            <img 
+              src="https://img.buymeacoffee.com/button-api/?text=Buy me a Pizza&emoji=🍕&slug=maddy.17&button_colour=FF5F5F&font_colour=ffffff&font_family=Cookie&outline_colour=000000&coffee_colour=FFDD00"
+              alt="Buy me a Pizza"
+              className="hover:opacity-90 transition-opacity"
+            />
+          </a>
+        </motion.div>
+
         {/* Floating elements with subtle movement */}
         {floatingElements.map((item, index) => (
           <motion.div

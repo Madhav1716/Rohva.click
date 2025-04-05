@@ -1,0 +1,74 @@
+import { Twitter, Facebook, Linkedin, Link2 } from 'lucide-react';
+import { motion } from 'framer-motion';
+
+interface ShareButtonsProps {
+  imageUrl?: string;
+  title?: string;
+}
+
+export default function ShareButtons({ imageUrl, title = "Check out my vintage photo from Rohva!" }: ShareButtonsProps) {
+  const url = typeof window !== 'undefined' ? window.location.href : '';
+  
+  const shareData = {
+    title: title,
+    text: "Created with Rohva Vintage Photo Booth",
+    url: url
+  };
+
+  const shareLinks = {
+    twitter: `https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(url)}`,
+    facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
+    linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`
+  };
+
+  const copyToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(url);
+      // You could add a toast notification here
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
+
+  return (
+    <div className="flex gap-3 items-center justify-center">
+      <motion.a
+        href={shareLinks.twitter}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="p-2 rounded-full bg-vintageRose bg-opacity-10 hover:bg-opacity-20 transition-all"
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.9 }}>
+        <Twitter size={20} className="text-vintageRose" />
+      </motion.a>
+      
+      <motion.a
+        href={shareLinks.facebook}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="p-2 rounded-full bg-vintageRose bg-opacity-10 hover:bg-opacity-20 transition-all"
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.9 }}>
+        <Facebook size={20} className="text-vintageRose" />
+      </motion.a>
+      
+      <motion.a
+        href={shareLinks.linkedin}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="p-2 rounded-full bg-vintageRose bg-opacity-10 hover:bg-opacity-20 transition-all"
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.9 }}>
+        <Linkedin size={20} className="text-vintageRose" />
+      </motion.a>
+      
+      <motion.button
+        onClick={copyToClipboard}
+        className="p-2 rounded-full bg-vintageRose bg-opacity-10 hover:bg-opacity-20 transition-all"
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.9 }}>
+        <Link2 size={20} className="text-vintageRose" />
+      </motion.button>
+    </div>
+  );
+} 

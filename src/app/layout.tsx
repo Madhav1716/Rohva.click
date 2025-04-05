@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import JsonLd from "./components/JsonLd";
+import GoogleAnalytics from "./components/GoogleAnalytics";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -13,25 +15,52 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Rohva – Capture, Edit & Share Stunning Photos",
-  description:
-    "Rohva is a powerful online photo booth app built with Next.js. Capture, edit, and share your photos effortlessly with stunning effects.",
+  title: "Rohva – Vintage Photo Booth & Memory Maker",
+  description: "Transform your photos into timeless memories with Rohva's vintage photo booth. Create, customize, and share beautiful vintage-style photos instantly. No account needed, free to use!",
   keywords: [
     "Rohva",
-    "photo booth",
+    "vintage photo booth",
     "online photo editing",
-    "Next.js",
-    "image capture",
-    "photo effects",
+    "retro photo effects",
+    "vintage photo filters",
+    "photo sharing",
+    "nostalgic photos",
+    "vintage photography",
+    "photo customization",
+    "instant photo effects",
+    "free photo editor",
+    "vintage memories"
   ],
-  authors: [{ name: "Your Name", url: "https://rohva.com" }],
+  authors: [{ name: "Maddy", url: "https://rohva.click" }],
   robots: "index, follow",
   openGraph: {
-    title: "Rohva – The Ultimate Online Photo Booth",
-    description:
-      "Capture, edit, and share amazing photos instantly with Rohva, your go-to online photo booth.",
-    url: "https://rohva.com",
+    title: "Rohva – Create Timeless Vintage Photos Instantly",
+    description: "Transform your moments into beautiful vintage memories. Free online photo booth with artistic filters, easy sharing, and instant downloads.",
+    url: "https://rohva.click",
+    siteName: "Rohva",
     type: "website",
+    locale: "en_US",
+    images: [
+      {
+        url: "/og-image.jpg", // You'll need to add this image
+        width: 1200,
+        height: 630,
+        alt: "Rohva Vintage Photo Booth",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Rohva – Vintage Photo Booth & Memory Maker",
+    description: "Create beautiful vintage-style photos instantly. No account needed!",
+    images: ["/twitter-image.jpg"], // You'll need to add this image
+  },
+  viewport: "width=device-width, initial-scale=1",
+  themeColor: "#f8f1e4",
+  manifest: "/manifest.json", // You'll need to create this
+  icons: {
+    icon: "/favicon.ico",
+    apple: "/apple-touch-icon.png", // You'll need to add this
   },
 };
 
@@ -42,9 +71,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <link rel="canonical" href="https://rohva.click" />
+        <meta name="google-site-verification" content="YOUR_VERIFICATION_CODE" />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         suppressHydrationWarning>
+        <JsonLd />
+        <GoogleAnalytics ga_id="G-6XDZ53773G" />
         {children}
       </body>
     </html>
