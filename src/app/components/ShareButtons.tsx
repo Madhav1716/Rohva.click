@@ -7,12 +7,6 @@ interface ShareButtonsProps {
 
 export default function ShareButtons({ title = "Check out my vintage photo from Rohva!" }: ShareButtonsProps) {
   const url = typeof window !== 'undefined' ? window.location.href : '';
-  
-  const shareData = {
-    title: title,
-    text: "Created with Rohva Vintage Photo Booth",
-    url: url
-  };
 
   const shareLinks = {
     twitter: `https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(url)}`,
@@ -20,16 +14,20 @@ export default function ShareButtons({ title = "Check out my vintage photo from 
     linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`
   };
 
-  const copyToClipboard = async () => {
+  const handleShare = async () => {
     try {
-      if (navigator.share) {
-        await navigator.share(shareData);
+      if (typeof navigator !== 'undefined' && navigator.share) {
+        await navigator.share({
+          title: title,
+          text: "Created with Rohva Vintage Photo Booth",
+          url: url
+        });
       } else {
         await navigator.clipboard.writeText(url);
         // You could add a toast notification here
       }
     } catch (err) {
-      console.error('Failed to copy or share:', err);
+      console.error('Failed to share:', err);
       // Fallback to clipboard copy if share fails
       try {
         await navigator.clipboard.writeText(url);
@@ -72,7 +70,7 @@ export default function ShareButtons({ title = "Check out my vintage photo from 
       </motion.a>
       
       <motion.button
-        onClick={copyToClipboard}
+        onClick={handleShare}
         className="p-2 rounded-full bg-vintageRose bg-opacity-10 hover:bg-opacity-20 transition-all"
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}>
