@@ -2,11 +2,10 @@ import { Twitter, Facebook, Linkedin, Link2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface ShareButtonsProps {
-  imageUrl?: string;
   title?: string;
 }
 
-export default function ShareButtons({ imageUrl, title = "Check out my vintage photo from Rohva!" }: ShareButtonsProps) {
+export default function ShareButtons({ title = "Check out my vintage photo from Rohva!" }: ShareButtonsProps) {
   const url = typeof window !== 'undefined' ? window.location.href : '';
   
   const shareData = {
@@ -23,10 +22,20 @@ export default function ShareButtons({ imageUrl, title = "Check out my vintage p
 
   const copyToClipboard = async () => {
     try {
-      await navigator.clipboard.writeText(url);
-      // You could add a toast notification here
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        await navigator.clipboard.writeText(url);
+        // You could add a toast notification here
+      }
     } catch (err) {
-      console.error('Failed to copy:', err);
+      console.error('Failed to copy or share:', err);
+      // Fallback to clipboard copy if share fails
+      try {
+        await navigator.clipboard.writeText(url);
+      } catch (clipErr) {
+        console.error('Failed to copy:', clipErr);
+      }
     }
   };
 
